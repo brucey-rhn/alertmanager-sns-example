@@ -1,0 +1,22 @@
+{{ define "sns.alert.subject" -}}
+  {{- $env := or .CommonLabels.environment "Unknown" | title -}}
+  {{- $sev := or .CommonLabels.severity "Info" | title -}}
+  {{- printf "ROSA Operational Alert [Env=%s] [Sev=%s]" $env $sev -}}
+{{- end -}}
+
+{{ define "sns.alert.message" -}}
+  {{/* get the summary from the first alert in the group */}}
+  {{- with index .Alerts 0 -}}
+    {{- $summary := or .Annotations.summary "Not Specified" -}}
+    {{- printf "Summary: %s\n\nDescription:" $summary -}}
+  {{- end -}}
+  
+  {{/* loop through the descriptions and print each */}}
+  {{- range $i, $alert := .Alerts }}
+    {{- printf "\n%s" .Annotations.description -}}
+  {{- end}}
+
+Cluster Name: {{ .CommonLabels.cluster_name }}
+Namespace: {{ .CommonLabels.namespace }}
+Cluster ID: {{ .CommonLabels.cluster_id }}
+{{- end }}

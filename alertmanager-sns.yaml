@@ -1,0 +1,46 @@
+global:
+  resolve_timeout: 1m
+route:
+  receiver: default
+  group_by:
+  - alertname
+  - cluster_name
+  - environment
+  - job
+  - namespace
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 5m
+  routes:
+  - matchers:
+    - alertname =~ "(AppContainerStartFailed|AppContainerStartWaiting)"
+    receiver: team-ops
+templates:
+- ../config/sns-alert.tmpl
+
+receivers:
+- name: 'default'
+  sns_configs:
+  - sigv4:
+      region: <aws_region>
+      access_key: <iam_access_key_name>
+      secret_key: <iam_access_key_secret>
+    send_resolved: true
+    api_url: "https://sns.<aws_region>.amazonaws.com"
+    topic_arn: arn:aws:sns:<aws_region>:<aws_account>:<sns_topic>
+    subject: 'ROSA Operational Alert'
+    message: "\nSummary: {{ .CommonAnnotations.summary }}\nDescription: {{ .CommonAnnotations.description }} "
+    attributes:
+      key: severity
+      value: CRITICAL
+
+- name: 'team-ops'
+  sns_configs:
+      region: <aws_region>
+      access_key: <iam_access_key_name>
+      secret_key: <iam_access_key_secret>
+    send_resolved: true
+    api_url: "https://sns.<aws_region>.amazonaws.com"
+    topic_arn: arn:aws:sns:<aws_region>:<aws_account>:<sns_topic>
+    subject: '{{ template "sns.alert.subject" . }}'
+    message: '{{ template "sns.alert.message" . }}'

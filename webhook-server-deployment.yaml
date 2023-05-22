@@ -1,0 +1,57 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: webhook-server
+  name: webhook-server
+  namespace: openshift-user-workload-monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webhook-server
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: webhook-server
+    spec:
+      containers:
+      - image: ubi9/python-311
+        command:
+        - '/usr/bin/python3'
+        args:
+        - '/webhook-server.py'
+        - '5000'
+        name: python-311
+        resources: {}
+        volumeMounts:
+        - mountPath: /webhook-server.py
+          name: webhook-server-py
+          subPath: webhook-server.py
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: webhook-server.py
+            path: webhook-server.py
+          name: webhook-config
+        name: webhook-server-py
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: webhook-server
+  name: webhook-server
+  namespace: openshift-user-workload-monitoring
+spec:
+  ports:
+  - port: 5000
+    protocol: TCP
+    targetPort: 5000
+    name: web
+  selector:
+    app: webhook-server
+  type: ClusterIP

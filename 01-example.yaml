@@ -1,0 +1,89 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: example-app
+  name: example-app-1
+  namespace: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: example-app
+  template:
+    metadata:
+      labels:
+        app: example-app
+        maistra.io/expose-route: "true"
+    spec:
+      containers:
+      - image: xquay.io/brancz/prometheus-example-app:v0.3.0
+        imagePullPolicy: IfNotPresent
+        name: example-app
+        resources:
+          limits:
+            cpu: 500m
+          requests:
+            cpu: 200m
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: example-app
+  name: example-app-2
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: example-app
+  template:
+    metadata:
+      labels:
+        app: example-app
+        maistra.io/expose-route: "true"
+    spec:
+      containers:
+      - image: quay.io/brancz/prometheus-example-app:v0.3.0
+        imagePullPolicy: IfNotPresent
+        name: example-app
+        resources:
+          limits:
+            cpu: 500m
+          requests:
+            cpu: 200m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: example-app
+  name: example-app
+  namespace: demo
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+    name: web
+  selector:
+    app: example-app
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: example-app
+  namespace: demo
+spec:
+  host: example-app.apps.<cluster_base_dns>
+  port:
+    targetPort: 8080
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: edge
+  to:
+    kind: Service
+    name: example-app

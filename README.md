@@ -1,0 +1,1 @@
+# alertmanager-sns-example

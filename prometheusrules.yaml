@@ -1,0 +1,35 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: developer-team
+  namespace: demo
+  labels:
+# these rules must run on thanos so they can access kube state metrics
+#   openshift.io/prometheus-rule-evaluation-scope: leaf-prometheus
+spec:
+  groups:
+  - name: example-app
+    rules:
+    - alert: AppContainerStartFailed
+      annotations:
+        description: 'Container {{ $labels.container }} in pod {{ $labels.pod }} failed to start, reason: {{ $labels.reason }}'
+        summary: 'One or more pods failed to start'
+      expr: |
+        kube_pod_container_status_waiting_reason{namespace="demo", job="kube-state-metrics", reason=~"(CrashLoopBackoff|ImagePullBackOff)"} > 0
+      for: 10s
+      labels:
+        instance: "{{ $labels.instance }}"
+        error: err
+        severity: alert
+    - alert: AppContainerStartWaiting
+      annotations:
+        description: 'Pod {{ $labels.namespace }}/{{ $labels.pod }} ({{ $labels.container }}) is in waiting state'
+        summary: 'One or more pods is in ContainerCreating state longer than 3 minutes'
+      expr: |
+        kube_pod_container_status_waiting_reason{namespace="demo", job="kube-state-metrics", reason=~"(ContainerCreating)"} > 0
+      for: 3m
+      labels:
+        instance: "{{ $labels.instance }}"
+        error: err
+        severity: alert
+
