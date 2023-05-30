@@ -36,6 +36,7 @@ receivers:
 
 - name: 'team-ops'
   sns_configs:
+  - sigv4:
       region: <aws_region>
       access_key: <iam_access_key_name>
       secret_key: <iam_access_key_secret>
